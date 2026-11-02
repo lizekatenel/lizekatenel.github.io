@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kakkerlak Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #f1d6df;
+    --orange: #db5726;
+    --brown: #442b19;
+    --cream: #fff9df;
+    --dark-green: #234d2a;
+    --lime: #b1d062;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #e9e2d6;
+    font-family: 'Figtree', system-ui, sans-serif;
+    color: var(--brown);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  /* ---------- phone frame (402 x 874, scaled to fit) ---------- */
+  .stage { width: 402px; height: 874px; flex: none; transform-origin: center center; }
+  .phone {
+    position: relative; width: 402px; height: 874px; overflow: hidden;
+    background: var(--pink); border-radius: 44px;
+    box-shadow: 0 0 0 10px #1d1410, 0 30px 60px rgba(0,0,0,.35);
+  }
+  body.fullscreen { background: var(--pink); }
+  body.fullscreen .phone { border-radius: 0; box-shadow: none; }
+
+  /* screens (Figma frames reached with "navigate") */
+  .screen { position: absolute; inset: 0; background: var(--pink); display: none; }
+  .screen.active { display: block; animation: screenIn .2s ease; }
+  @keyframes screenIn { from { opacity: 0; } }
+  .scroller { position: absolute; overflow-y: auto; scrollbar-width: none; }
+  .scroller::-webkit-scrollbar { display: none; }
+
+  /* cropped sprite helper: the Figma exports are full canvases, cropped by % */
+  .crop { position: absolute; overflow: hidden; pointer-events: none; }
+  .crop > img { position: absolute; max-width: none; }
+
+  /* ---------- header ---------- */
+  /* whole-pixel bars so all three render at the same thickness */
+  .burger { position: absolute; left: 41px; top: 88px; width: 30px; height: 23px; }
+  .burger span { position: absolute; left: 0; width: 100%; height: 5px; border-radius: 4px; background: var(--brown); }
+  .burger span:nth-child(1) { top: 0; }
+  .burger span:nth-child(2) { top: 9px; }
+  .burger span:nth-child(3) { top: 18px; }
+  .burger.lg { top: 103px; width: 33px; height: 25px; }
+  .burger.lg span:nth-child(2) { top: 10px; }
+  .burger.lg span:nth-child(3) { top: 20px; }
+  .burger:active { opacity: .7; }
+  .settings { position: absolute; left: 329px; top: 103px; width: 32px; height: 33px; }
+  .settings:active { transform: rotate(30deg); }
+  .page-title {
+    position: absolute; left: 0; right: 0; top: 82px; text-align: center;
+    font-size: 24px; font-weight: 700; line-height: 29px; pointer-events: none;
+  }
+  .icon-btn { position: absolute; display: block; }
+  .icon-btn img { width: 100%; height: 100%; display: block; }
+  .icon-btn:active { transform: scale(.92); }
+
+  /* ---------- points badge (ellipse + star + pill); origin = ellipse top-left ---------- */
+  .pointsbar { position: absolute; width: 143px; height: 72px; }
+  .pointsbar .pill {
+    position: absolute; left: 14px; top: 15px; width: 129px; height: 41px;
+    background: var(--cream); border: 2px solid var(--brown); border-radius: 10px;
+  }
+  .pointsbar .circle { position: absolute; left: 0; top: 0; width: 72px; height: 72px; }
+  .pointsbar .star { position: absolute; left: 0; top: 1px; width: 70px; height: 70px; }
+  .pointsbar .star img { position: absolute; left: 14.31%; top: 12.78%; display: block; }
+  .pointsbar .star:active { transform: scale(.94); }
+  .points {
+    position: absolute; left: 70px; top: 26px; width: 47px; height: 19px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Patrick Hand', cursive; font-size: 20px; line-height: 1; letter-spacing: 2px;
+  }
+  .points.bump { animation: bump .45s ease; }
+  @keyframes bump { 40% { transform: scale(1.12); } }
+  .plus5 {
+    position: absolute; left: 94px; top: 70px; width: 44px; height: 24px;
+    opacity: 0; pointer-events: none;
+  }
+  .plus5.show { animation: floatUp 1.2s ease forwards; }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    20% { opacity: 1; transform: translateY(0); }
+    75% { opacity: 1; transform: translateY(-14px); }
+    100% { opacity: 0; transform: translateY(-24px); }
+  }
+
+  /* small star coin used next to prices */
+  .coin { position: relative; display: inline-block; width: 22px; height: 22px; flex: none; }
+  .coin::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: var(--lime); border: 1px solid var(--brown);
+  }
+  .coin img { position: absolute; left: 14.31%; top: 13%; width: 71.4%; display: block; }
+
+  /* ---------- cup room ---------- */
+  /* "Buggo": 360x465 clip; the cup art is a full 2048x2732 canvas placed at
+     (-15.32%, -12.09%) of a 359x465 box, i.e. a 469px-wide canvas at (-55, -56.2) */
+  .room-btn { position: absolute; left: 21px; top: 190px; width: 360px; height: 465px; overflow: hidden; }
+  .room { position: absolute; left: -55px; top: -56.2px; width: 469px; height: 625.3px; }
+  .room .bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+  /* roach: 178x291 box at (142,108) in Buggo, canvas-sized image at (-17.7%, -4.35%) */
+  .room .roach {
+    position: absolute; left: 165.5px; top: 151.5px; width: 264.6px; height: 352.5px;
+    pointer-events: none; transform-origin: 50% 80%;
+  }
+  .room .roach img { width: 100%; height: 100%; display: block; }
+  .room .roach.wiggle { animation: wiggle .6s ease; }
+  @keyframes wiggle { 20% { transform: rotate(-6deg); } 50% { transform: rotate(5deg); } 80% { transform: rotate(-2deg); } }
+  .room .slot { transition: opacity .25s; }
+  .room .slot.placed { animation: drop .35s ease; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-10px); } }
+
+  .star-bottom { position: absolute; left: 31px; top: 668px; width: 70px; height: 70px; }
+  .star-bottom img { position: absolute; left: 14.31%; top: 12.78%; display: block; }
+  .star-bottom:active { transform: scale(.94); }
+
+  /* house (decorate / store) */
+  .house { position: absolute; left: 306px; top: 668px; width: 56px; height: 60px; }
+  .house:active { transform: scale(.94); }
+
+  /* ---------- bottom bar ---------- */
+  .tabbar {
+    position: absolute; left: 0; top: 765px; width: 402px; height: 166px;
+    background: var(--orange); border: 2px solid var(--brown); border-radius: 29px;
+  }
+  .tab {
+    position: absolute; top: 15px; padding: 10px;
+    font-weight: 700; font-size: 24px; color: var(--cream); white-space: nowrap;
+  }
+  .tab:active { transform: translateY(1px); opacity: .85; }
+  .add-btn { position: absolute; left: 168px; top: 17px; width: 65px; height: 65px; }
+  .add-btn svg { display: block; }
+  .add-btn:active { transform: scale(.94); }
+
+  /* ---------- overlays / pop-ups ---------- */
+  .scrim {
+    position: absolute; inset: 0; background: rgba(68, 43, 25, .5);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .scrim.clear { background: transparent; }
+  .popup {
+    position: absolute; left: 28px; top: 155.5px; width: 346px; height: 563px;
+    background: var(--pink); border: 2px solid var(--brown); border-radius: 23px; z-index: 20;
+    transform: translateY(20px) scale(.97); opacity: 0; pointer-events: none;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+  .popup.open { transform: none; opacity: 1; pointer-events: auto; }
+  .popup.white { background: var(--white); }
+  /* children are positioned from the frame's outer edge, like in Figma */
+  .popup > .inner { position: absolute; inset: -2px; }
+  .popup .scroll { position: absolute; inset: 0; overflow-y: auto; border-radius: 21px; scrollbar-width: none; }
+  .popup .scroll::-webkit-scrollbar { display: none; }
+  /* orange X: two 37x8 bars, centred at (302.5, 30) of a popup */
+  .close { position: absolute; left: 278px; top: 5px; width: 50px; height: 50px; z-index: 2; }
+  .close::before, .close::after {
+    content: ''; position: absolute; left: 6.5px; top: 21px; width: 37px; height: 8px;
+    border-radius: 4px; background: var(--orange); transform: rotate(45deg);
+  }
+  .close::after { transform: rotate(-45deg); }
+  .close:active { transform: scale(.9); }
+  .popup h2 { position: absolute; font-size: 24px; font-weight: 700; line-height: 29px; }
+  .text-14 { font-size: 14px; line-height: normal; }
+
+  /* refuse / recycle */
+  .qr-copy { position: absolute; left: 67px; top: 175px; width: 211px; text-align: center; font-weight: 700; }
+  .qr { position: absolute; left: 53px; top: 270px; width: 239px; height: 239px; }
+  .qr img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .qr.scanned { animation: flash .5s ease; }
+  @keyframes flash { 30% { filter: brightness(1.4); transform: scale(.97); } }
+  .hint { position: absolute; left: 0; right: 0; top: 522px; text-align: center; font-size: 12px; opacity: .6; }
+
+  /* reuse feed */
+  .feed { left: 0; top: 159px; width: 402px; height: 606px; padding: 20px 0 60px; }
+  .post { position: relative; height: 470px; }
+  .post .pic { position: relative; margin-left: 41px; width: 319px; height: 319px; border-radius: 10px; overflow: hidden; }
+  .post .pic img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+  .post .pic img.crop67 { height: 148.6%; top: -17.6%; object-fit: fill; }
+  .post .meta { position: relative; margin-left: 41px; width: 319px; }
+  .post .avatar { position: absolute; left: 0; top: 15px; width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+  .post .author { margin-left: 47px; padding-top: 25px; width: 189px; font-weight: 700; }
+  .post .like { position: absolute; left: 295px; top: 18px; width: 24px; height: 24px; }
+  .post .like img { width: 24px; height: 24px; display: block; }
+  .post .like.pop { animation: bump .35s ease; }
+  .post .body { position: relative; margin: 12px 0 0 47px; width: 242px; }
+  .post .more { position: absolute; right: 0; top: 55px; font-weight: 700; }
+
+  /* community feed */
+  .events { left: 0; top: 159px; width: 402px; height: 715px; padding: 20px 0 60px; }
+  .event { position: relative; height: 449px; margin-left: 41px; width: 320px; }
+  .event .pic { position: relative; margin-left: 1px; width: 319px; height: 319px; border-radius: 10px; overflow: hidden; }
+  .event .pic img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+  .event .pic img.crop67 { height: 148.6%; top: -17.6%; object-fit: fill; }
+  .event .head { display: flex; justify-content: space-between; margin-top: 25px; font-weight: 700; }
+  .event .desc { margin-top: 12px; }
+
+  /* badges */
+  #badges { overflow: hidden; }
+  /* Zoom into the sash like Figma's Variant2: the art is scaled 10.408x (sash 245px -> 2550px)
+     and moved so the cream sash fills the screen. The badges fade in only once the zoom lands;
+     going back they fade out first, then the zoom reverses. */
+  .badge-art {
+    position: absolute; inset: 0; transform-origin: 0 0;
+    transition: transform .7s cubic-bezier(.65, 0, .35, 1) .15s;
+  }
+  .badge-art img { position: absolute; display: block; }
+  .badge-art .roach-art { left: 0; top: 0; width: 100%; height: 100%; }
+  .badge-art .sash-art { left: 102px; top: 381px; width: 245px; height: 212px; }
+  /* the dots aren't in Figma's zoomed variant, so they fade out while zooming */
+  .sash-dot { position: absolute; width: 21px; height: 21px; border-radius: 50%; transition: opacity .3s ease .15s; }
+  #badges.book .sash-dot { opacity: 0; transition-delay: 0s; }
+  .badge-book { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+  .badge-book img { width: 100%; height: 100%; display: block; }
+  #badges.book .badge-art {
+    transform: translate(-1420.6px, -4527.5px) scale(10.408); pointer-events: none;
+    transition-delay: 0s;
+  }
+  #badges.book .badge-book { opacity: 1; pointer-events: auto; transition: opacity .25s ease .65s; }
+  .sash-btn { position: absolute; left: 102px; top: 381px; width: 245px; height: 212px; }
+  .back-btn { position: absolute; left: 46px; top: 63px; width: 53px; height: 53px; }
+  #badges .close { left: 321px; top: 64px; transition: opacity .2s; }
+  #badges.book .close { opacity: 0; pointer-events: none; }
+
+  /* rewards */
+  #rewards { background: var(--white); }
+  .rewards-list { left: 31px; top: 216px; width: 340px; height: 658px; padding: 36px 10px 60px; }
+  .reward {
+    display: flex; justify-content: space-between; width: 100%; text-align: right;
+    padding-bottom: 8px; border-bottom: 1px solid var(--brown); margin-bottom: 7px;
+  }
+  .reward:last-child { border-bottom: 0; }
+  .reward .thumb { width: 114px; height: 86px; object-fit: cover; display: block; flex: none; }
+  .reward .thumb.short { height: 76px; }
+  .reward .info { width: 146px; display: flex; flex-direction: column; align-items: flex-end; }
+  .reward .name { font-weight: 700; }
+  .price-row { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
+  .reward:active .name { color: var(--orange); }
+
+  /* reward item pop-up */
+  .item-pic { position: absolute; left: 24px; top: 110px; width: 299px; height: 224px; border: 2px solid var(--brown); overflow: hidden; }
+  .item-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .item-name { position: absolute; left: 24px; top: 351px; width: 146px; font-weight: 700; }
+  .item-price { position: absolute; left: 24px; top: 376px; }
+  .item-price .price-row { margin-top: 0; }
+  .basket-btn {
+    position: absolute; left: 173px; top: 352px; width: 150px; height: 47px;
+    background: var(--cream); border: 2px solid var(--brown); border-radius: 10px;
+    font-weight: 700; font-size: 14px; transition: background .15s;
+  }
+  .basket-btn.added { background: var(--lime); }
+  .basket-btn:active { transform: translateY(1px); }
+  #item .close { left: 282px; top: 24px; }
+
+  /* furniture store */
+  .grid { position: relative; padding: 57px 24px 32px; display: grid; grid-template-columns: 138px 138px; column-gap: 21px; row-gap: 18px; }
+  .tile { position: relative; width: 138px; height: 138px; background: var(--white); border-radius: 15px; }
+  .tile.selected { box-shadow: inset 0 1px 6.6px rgba(0,0,0,.25); }
+  .tile.selected .crop { opacity: .9; }
+  .tile .label {
+    position: absolute; left: 4px; right: 4px; top: 113px;
+    font-weight: 700; font-size: 14px; text-align: center; line-height: normal;
+  }
+  .tile .price {
+    position: absolute; right: 6px; top: 6px; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 8px;
+    background: var(--cream); border: 1px solid var(--brown);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Patrick Hand', cursive; font-size: 15px; line-height: 1; letter-spacing: 1px;
+  }
+  .tile .price.owned { background: var(--lime); min-width: 61px; }
+  .tile.shake { animation: shake .35s ease; }
+  @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+  /* settings */
+  .setting {
+    position: absolute; left: 36px; width: 273px; height: 70px;
+    background: var(--cream); border: 2px solid var(--brown); border-radius: 10px;
+  }
+  .setting strong { position: absolute; left: 16px; top: 12px; font-size: 14px; }
+  .setting span { position: absolute; left: 16px; top: 34px; font-size: 14px; }
+  .toggle {
+    position: absolute; left: 184px; top: 16px; width: 62px; height: 32px; border-radius: 16px;
+    background: rgba(68, 43, 25, .2); border: 2px solid var(--brown); transition: background .2s;
+  }
+  .toggle::after {
+    content: ''; position: absolute; left: 2px; top: 1.5px; width: 25px; height: 25px; border-radius: 50%;
+    background: var(--cream); border: 2px solid var(--brown); box-sizing: border-box; transition: left .2s;
+  }
+  .toggle.on { background: var(--orange); }
+  .toggle.on::after { left: 33px; }
+  .reset-link { position: absolute; left: 0; right: 0; top: 500px; font-size: 12px; opacity: .6; text-decoration: underline; }
+
+  /* about */
+  .about-logo { position: absolute; left: 0; top: 164px; width: 346px; height: 202px; display: block; }
+  .about-copy { position: absolute; left: 37px; top: 376px; width: 271px; }
+
+  /* burger drawer */
+  /* 152px visible; the 188x937 panel starts at x=-36 so only its top-right corner rounds on screen */
+  .drawer {
+    position: absolute; left: -36px; top: 0; width: 188px; height: 937px; z-index: 30;
+    background: var(--cream); border: 2px solid var(--brown); border-radius: 29px;
+    transform: translateX(-110%); transition: transform .25s ease;
+  }
+  .drawer.open { transform: none; }
+  .drawer .close { left: 129px; top: 87px; }
+  .drawer nav { position: absolute; left: 45px; top: 177px; display: flex; flex-direction: column; gap: 2.5px; }
+  .drawer nav button { text-align: left; font-weight: 700; font-size: 20px; line-height: 24px; padding: 10px; }
+  .drawer nav button:active { color: var(--orange); }
+
+  .toast {
+    position: absolute; left: 50%; bottom: 150px; transform: translate(-50%, 10px);
+    background: var(--brown); color: var(--cream); padding: 10px 16px; border-radius: 12px;
+    font-size: 14px; font-weight: 700; opacity: 0; pointer-events: none; transition: .2s; z-index: 40; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="phone" id="phone">
+
+    <!-- ================= Home ================= -->
+    <section class="screen active" id="home" aria-label="Home">
+      <button class="burger lg" data-open="drawer" aria-label="Menu"><span></span><span></span><span></span></button>
+      <button class="settings" data-open="settings" aria-label="Settings">
+        <div class="crop" style="inset:0">
+          <img src="assets/settings.png" alt="" style="width:130.77%;height:170.08%;left:-15.38%;top:-27.54%">
+        </div>
+      </button>
+
+      <div class="pointsbar" style="left:129px;top:77px"></div>
+
+      <!-- cup room -->
+      <button class="room-btn" id="roomBtn" aria-label="Cup room">
+        <div class="room" id="room">
+          <img class="bg" src="assets/cup.png" alt="">
+          <!-- furniture slots are injected here -->
+          <div class="roach" id="roach"><img src="assets/roach.gif" alt="Kakkerlak the cockroach"></div>
+        </div>
+      </button>
+
+      <button class="star-bottom" data-screen="rewards" aria-label="Rewards"><img src="assets/star-green.svg" alt=""></button>
+
+      <button class="house" data-open="store" aria-label="Decorate room">
+        <div class="crop" style="inset:0">
+          <img src="assets/house.png" alt="" style="width:376.09%;height:204.2%;left:-148.6%;top:-53.77%">
+        </div>
+      </button>
+
+      <nav class="tabbar">
+        <button class="tab" style="left:46px" data-open="refuse">Refuse</button>
+        <button class="tab" style="left:157px" data-screen="reuse">Reuse</button>
+        <button class="tab" style="left:258px" data-open="recycle">Recycle</button>
+      </nav>
+    </section>
+
+    <!-- ================= Reuse ================= -->
+    <section class="screen" id="reuse" aria-label="Recycling Projects">
+      <button class="burger" data-open="drawer" aria-label="Menu"><span></span><span></span><span></span></button>
+      <h1 class="page-title">Recycling<br>Projects</h1>
+      <button class="icon-btn" id="searchBtn" style="left:327px;top:83px;width:38px;height:38px" aria-label="Search"><img src="assets/icon-search.svg" alt=""></button>
+
+      <div class="scroller feed">
+        <article class="post">
+          <div class="pic"><img src="assets/reuse-post1.jpg" alt="Planters covered in bottle caps"></div>
+          <div class="meta">
+            <img class="avatar" src="assets/reuse-avatar1.png" alt="">
+            <p class="author text-14">Mydesired Home</p>
+            <button class="like" aria-label="Like"><img src="assets/heart.svg" alt=""></button>
+            <div class="body">
+              <p class="text-14">At a time when the importance of sustainability is needed, DIY projects - made by yourself, that is - are becoming more and ...</p>
+              <button class="more text-14">see more</button>
+            </div>
+          </div>
+        </article>
+        <article class="post">
+          <div class="pic"><img class="crop67" src="assets/post2.jpg" alt="Bunting made from old fabric"></div>
+          <div class="meta">
+            <img class="avatar" src="assets/avatar2.png" alt="">
+            <p class="author text-14">Dorothee-Maria Lotufo</p>
+            <button class="like" aria-label="Like"><img src="assets/heart.svg" alt=""></button>
+            <div class="body">
+              <p class="text-14">Mini Mad Things on Instagram: "I was inspired by @madebyhowies awesome upcycling skills and made some bunting from old...</p>
+              <button class="more text-14">see more</button>
+            </div>
+          </div>
+        </article>
+        <article class="post">
+          <div class="pic"><img class="crop67" src="assets/reuse-post3.jpg" alt="Craft made from rubbish"></div>
+          <div class="meta">
+            <img class="avatar" src="assets/reuse-avatar3.png" alt="">
+            <p class="author text-14">Upcycle My Stuff | Recycled Craft Ideas, Upcycle Projects DIY</p>
+            <button class="like" aria-label="Like"><img src="assets/heart.svg" alt=""></button>
+            <div class="body">
+              <p class="text-14">10 Projects Made from Rubbish that you will actually want to keep - Upcycle My Stuff</p>
+              <button class="more text-14">see more</button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <nav class="tabbar">
+        <button class="add-btn" id="addPost" aria-label="Share a project">
+          <svg width="65" height="65" viewBox="0 0 65 65" aria-hidden="true">
+            <circle cx="32.5" cy="32.5" r="31.5" fill="#b1d062" stroke="#442b19" stroke-width="2"/>
+            <g stroke="#442b19" stroke-width="2" fill="#fff9df">
+              <rect x="14" y="28.5" width="37" height="8" rx="4"/><rect x="28.5" y="14" width="8" height="37" rx="4"/>
+            </g>
+            <g fill="#fff9df"><rect x="14" y="28.5" width="37" height="8" rx="4"/><rect x="28.5" y="14" width="8" height="37" rx="4"/></g>
+          </svg>
+        </button>
+      </nav>
+    </section>
+
+    <!-- ================= Community ================= -->
+    <section class="screen" id="community" aria-label="Community Projects">
+      <button class="burger" data-open="drawer" aria-label="Menu"><span></span><span></span><span></span></button>
+      <h1 class="page-title">Community<br>Projects</h1>
+      <button class="icon-btn" data-screen="badges" style="left:322px;top:82px;width:49px;height:49px" aria-label="Badges"><img src="assets/icon-award.svg" alt=""></button>
+
+      <div class="scroller events">
+        <article class="event">
+          <div class="pic"><img src="assets/community1.jpg" alt="Volunteers sorting litter"></div>
+          <div class="head text-14"><span>Community Clean Up</span><span>Nov 3ed 2026</span></div>
+          <p class="desc text-14">Come help our team clean up the Eerste River on Monday the 3ed of November and gain a clean up badge!</p>
+        </article>
+        <article class="event">
+          <div class="pic"><img class="crop67" src="assets/community2.jpg" alt="Building with eco bricks"></div>
+          <div class="head text-14"><span>Eco Brick Building</span><span>Nov 15th 2026</span></div>
+          <p class="desc text-14">Join us on the 15th of November for a day of making eco bricks and building animal shelters to gain en eco brick badge!</p>
+        </article>
+        <article class="event">
+          <div class="pic"><img src="assets/community3.jpg" alt="Sorting recycled waste"></div>
+          <div class="head text-14"><span>Recycling organisation</span><span>Nov 29th 2026</span></div>
+          <p class="desc text-14">Join our team in organising recycled waste at our recycling facilities on the 29th of November and gain a recycling badge.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= Badges ================= -->
+    <section class="screen" id="badges" aria-label="Badges">
+      <div class="badge-art">
+        <img class="roach-art" src="assets/badges-roach.png" alt="Kakkerlak wearing a badge sash">
+        <img class="sash-art" src="assets/badges-sash.png" alt="">
+        <span class="sash-dot" style="left:126px;top:426px;background:var(--orange)"></span>
+        <span class="sash-dot" style="left:122px;top:454px;background:var(--lime)"></span>
+        <span class="sash-dot" style="left:126px;top:483px;background:var(--pink)"></span>
+        <button class="sash-btn" id="sashBtn" aria-label="Open badge collection"></button>
+      </div>
+      <div class="badge-book">
+        <img src="assets/badges-book.png" alt="Badge collection: eco brick, clean up and recycling">
+        <button class="back-btn" id="bookBack" aria-label="Back"></button>
+      </div>
+      <button class="close" data-screen="community" aria-label="Close"></button>
+    </section>
+
+    <!-- ================= Rewards ================= -->
+    <section class="screen" id="rewards" aria-label="Rewards">
+      <button class="burger" data-open="drawer" aria-label="Menu" style="top:89px"><span></span><span></span><span></span></button>
+      <h1 class="page-title" style="top:83px">Rewards</h1>
+      <button class="icon-btn" id="basketBtn" style="left:328px;top:83px;width:36px;height:36px" aria-label="Basket"><img src="assets/icon-basket.svg" alt=""></button>
+      <div class="pointsbar" style="left:114px;top:133px"></div>
+      <div class="scroller rewards-list" id="rewardList"></div>
+    </section>
+
+    <div class="scrim" id="scrim"></div>
+
+    <!-- Refuse -->
+    <section class="popup" id="refuse" aria-label="Refuse"><div class="inner">
+      <button class="close" aria-label="Close"></button>
+      <p class="qr-copy text-14">Present this QR code to the cashier when using a reusable cup, or bag to get kakkerlak points.</p>
+      <button class="qr" aria-label="Simulate cashier scan"><img src="assets/qr.png" alt="Your QR code"></button>
+      <p class="hint">Demo: tap the QR code to simulate a scan (+5)</p>
+    </div></section>
+
+    <!-- Recycle -->
+    <section class="popup" id="recycle" aria-label="Recycle"><div class="inner">
+      <button class="close" aria-label="Close"></button>
+      <p class="qr-copy text-14">Present this QR code to any certified recycling facilitator when recycling your waste to get kakkerlak points.</p>
+      <button class="qr" aria-label="Simulate recycling scan"><img src="assets/qr.png" alt="Your QR code"></button>
+      <p class="hint">Demo: tap the QR code to simulate a scan (+5)</p>
+    </div></section>
+
+    <!-- Furniture store -->
+    <section class="popup" id="store" aria-label="Furniture"><div class="inner">
+      <div class="scroll"><div class="grid" id="grid"></div></div>
+      <button class="close" aria-label="Close"></button>
+    </div></section>
+
+    <!-- Reward item -->
+    <section class="popup white" id="item" aria-label="Reward"><div class="inner">
+      <div class="pointsbar" style="left:24px;top:18px"></div>
+      <button class="close" aria-label="Close"></button>
+      <div class="item-pic"><img id="itemImg" src="" alt=""></div>
+      <p class="item-name text-14" id="itemName"></p>
+      <div class="item-price text-14"><div class="price-row"><span class="coin"><img src="assets/star.svg" alt=""></span><span id="itemPrice"></span></div></div>
+      <button class="basket-btn" id="basketToggle">Add to basket</button>
+    </div></section>
+
+    <!-- Settings -->
+    <section class="popup" id="settings" aria-label="Settings"><div class="inner">
+      <button class="close" aria-label="Close"></button>
+      <h2 style="left:28px;top:22px">Settings</h2>
+      <div class="setting" style="top:100px"><strong>Sound</strong><span>Kakkerlak noises</span><button class="toggle" aria-label="Sound"></button></div>
+      <div class="setting" style="top:187px"><strong>Notifications</strong><span>Reminders</span><button class="toggle" aria-label="Notifications"></button></div>
+      <button class="reset-link" id="reset">Reset demo</button>
+    </div></section>
+
+    <!-- About -->
+    <section class="popup" id="about" aria-label="About"><div class="inner">
+      <button class="close" aria-label="Close"></button>
+      <h2 style="left:37px;top:46px">About</h2>
+      <img class="about-logo" src="assets/about-logo.png" alt="Kakkerlak">
+      <p class="about-copy text-14">Kakkerlak is an initiative that aims to make the hidden visible through bringing awareness to the waste we create and promote sustainability. Our aim is to create a habit of sustainable waste management and minimise it’s negative effects on the environment.</p>
+    </div></section>
+
+    <!-- Burger menu -->
+    <aside class="drawer" id="drawer" aria-label="Menu">
+      <button class="close" aria-label="Close"></button>
+      <nav>
+        <button data-screen="home">Home</button>
+        <button data-open="refuse">Refuse</button>
+        <button data-screen="reuse">Reuse</button>
+        <button data-open="recycle">Recycle</button>
+        <button data-screen="community">Community</button>
+        <button data-screen="rewards">Rewards</button>
+        <button data-open="about">About</button>
+      </nav>
+    </aside>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+  // Sprite crops from Figma: every furniture PNG is a full 2048x2732 canvas
+  const CROP = {
+    rug:    { w: 236.42, h: 645.01, l: -68.21,  t: -417.69 },
+    table:  { w: 551.72, h: 523.37, l: -150.59, t: -299.43 },
+    poster: { w: 453.1,  h: 390.29, l: -99.56,  t: -72 },
+    lights: { w: 215.81, h: 352.52, l: -92.62,  t: -33.81 },
+  };
+  // Where each slot sits on the cup canvas (originally measured on a 437px canvas; now 469px)
+  const K = 469 / 437;
+  const ROOM_POS = Object.fromEntries(Object.entries({
+    rug:    { l: 117, t: 375, w: 203, h: 100 },
+    table:  { l: 137, t: 336, w: 75,  h: 106 },
+    poster: { l: 87,  t: 131, w: 106, h: 164 },
+    lights: { l: 157, t: 56,  w: 238, h: 194 },
+  }).map(([k, p]) => [k, { l: p.l * K, t: p.t * K, w: p.w * K, h: p.h * K }]));
+  // Thumbnail placement inside a 138px store tile
+  const TILE_POS = {
+    rug:    { l: 6,  t: 39, w: 126, h: 62 },
+    table:  { l: 31, t: 7,  w: 75,  h: 106 },
+    poster: { l: 35, t: 6,  w: 68,  h: 105 },
+    lights: { l: 10, t: 3,  w: 118, h: 96 },
+  };
+  const SLOT_ORDER = ['rug', 'table', 'poster', 'lights']; // back to front
+
+  const ITEMS = [
+    { id: 'rug-pink',         name: 'Pink Rug',          slot: 'rug',    price: 15 },
+    { id: 'rug-lightgreen',   name: 'Light Green Rug',   slot: 'rug',    price: 15 },
+    { id: 'rug-red',          name: 'Red Rug',           slot: 'rug',    price: 15 },
+    { id: 'rug-darkgreen',    name: 'Dark Green Rug',    slot: 'rug',    price: 15 },
+    { id: 'rug-brown',        name: 'Brown Rug',         slot: 'rug',    price: 15 },
+    { id: 'table-lightgreen', name: 'Light Green Table', slot: 'table',  price: 25 },
+    { id: 'table-pink',       name: 'Pink Table',        slot: 'table',  price: 25 },
+    { id: 'table-red',        name: 'Red Table',         slot: 'table',  price: 25 },
+    { id: 'table-darkgreen',  name: 'Dark Green Table',  slot: 'table',  price: 25 },
+    { id: 'fairy-lights',     name: 'Fairy Lights',      slot: 'lights', price: 30 },
+    { id: 'receipt-poster',   name: 'Receipt Poster',    slot: 'poster', price: 20 },
+  ];
+
+  // Rewards page (real-world rewards)
+  const REWARDS = [
+    { id: 'cup',        name: 'Reusable Coffee Cup',          price: 1000, img: 'reward-cup.jpg' },
+    { id: 'tote',       name: 'Tote Bag',                     price: 800,  img: 'reward-tote.jpg' },
+    { id: 'tshirt',     name: 'T-Shirt',                      price: 800,  img: 'reward-tshirt.jpg', short: true },
+    { id: 'keychain',   name: 'Key Chain',                    price: 400,  img: 'reward-keychain.jpg' },
+    { id: 'checkers',   name: 'Checkers voucher',             price: 2000, img: 'reward-checkers.jpg' },
+    { id: 'woolworths', name: 'Woolworths voucher',           price: 2000, img: 'reward-woolworths.jpg', short: true },
+    { id: 'coffee',     name: 'Free Botanical Garden Coffee', price: 200,  img: 'reward-coffee.jpg' },
+    { id: 'stickers',   name: 'Sticker Pack',                 price: 150,  img: 'sticker-pack.jpg' },
+  ];
+
+  const DEFAULT_STATE = { points: 105, owned: [], placed: {}, liked: [], basket: [] };
+  const STORE_KEY = 'kakkerlak-demo';
+  let state = load();
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (saved && typeof saved.points === 'number') return { ...DEFAULT_STATE, ...saved };
+    } catch (e) {}
+    return structuredClone(DEFAULT_STATE);
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+
+  function cropEl(item, pos, className = '') {
+    const c = CROP[item.slot];
+    const div = document.createElement('div');
+    div.className = 'crop ' + className;
+    Object.assign(div.style, { left: pos.l + 'px', top: pos.t + 'px', width: pos.w + 'px', height: pos.h + 'px' });
+    div.innerHTML = `<img src="assets/${item.id}.png" alt="" style="width:${c.w}%;height:${c.h}%;left:${c.l}%;top:${c.t}%">`;
+    return div;
+  }
+
+  // points badge is shared by Home, Rewards and the reward pop-up
+  $$('.pointsbar').forEach(bar => {
+    bar.innerHTML = `
+      <div class="pill"></div>
+      <div class="points" aria-label="Kakkerlak points"></div>
+      <img class="circle" src="assets/star-circle.svg" alt="">
+      <button class="star" aria-label="Demo: add 5 points"><img src="assets/star.svg" alt=""></button>
+      <div class="crop plus5"><img src="assets/plus5.png" alt="" style="width:316.44%;height:337.5%;left:-111.63%;top:-125%"></div>`;
+    $('.star', bar).addEventListener('click', () => { addPoints(5); toast('+5 kakkerlak points'); });
+  });
+
+  // ---------- rendering ----------
+  function renderPoints() { $$('.points').forEach(p => p.textContent = state.points); }
+
+  function renderRoom(justPlaced) {
+    const room = $('#room');
+    $$('.slot', room).forEach(n => n.remove());
+    const roach = $('#roach');
+    SLOT_ORDER.forEach(slot => {
+      const id = state.placed[slot];
+      if (!id) return;
+      const item = ITEMS.find(i => i.id === id);
+      const el = cropEl(item, ROOM_POS[slot], 'slot' + (justPlaced === id ? ' placed' : ''));
+      room.insertBefore(el, roach);
+    });
+  }
+
+  function renderStore() {
+    const grid = $('#grid');
+    grid.innerHTML = '';
+    ITEMS.forEach(item => {
+      const owned = state.owned.includes(item.id);
+      const selected = state.placed[item.slot] === item.id;
+      const tile = document.createElement('button');
+      tile.className = 'tile' + (selected ? ' selected' : '');
+      tile.setAttribute('aria-pressed', selected);
+      tile.appendChild(cropEl(item, TILE_POS[item.slot]));
+      tile.insertAdjacentHTML('beforeend',
+        `<span class="price ${owned ? 'owned' : ''}">${owned ? (selected ? 'Placed' : 'Owned') : item.price}</span>
+         <span class="label">${item.name}</span>`);
+      tile.addEventListener('click', () => onTile(item, tile));
+      grid.appendChild(tile);
+    });
+  }
+
+  function onTile(item, tile) {
+    const owned = state.owned.includes(item.id);
+    if (!owned) {
+      if (state.points < item.price) {
+        tile.classList.remove('shake'); void tile.offsetWidth; tile.classList.add('shake');
+        toast(`You need ${item.price - state.points} more points`);
+        return;
+      }
+      state.points -= item.price;
+      state.owned.push(item.id);
+      state.placed[item.slot] = item.id;
+      toast(`${item.name} bought!`);
+    } else if (state.placed[item.slot] === item.id) {
+      delete state.placed[item.slot];
+    } else {
+      state.placed[item.slot] = item.id;
+    }
+    save(); renderPoints(); renderStore();
+    renderRoom(state.placed[item.slot]);
+  }
+
+  function renderRewards() {
+    $('#rewardList').innerHTML = REWARDS.map(r => `
+      <button class="reward" data-reward="${r.id}">
+        <img class="thumb${r.short ? ' short' : ''}" src="assets/${r.img}" alt="">
+        <span class="info">
+          <span class="name text-14">${r.name}</span>
+          <span class="price-row text-14"><span class="coin"><img src="assets/star.svg" alt=""></span>${r.price}</span>
+        </span>
+      </button>`).join('');
+    $$('#rewardList .reward').forEach(b => b.addEventListener('click', () => openReward(b.dataset.reward)));
+  }
+
+  let currentReward = null;
+  function openReward(id) {
+    currentReward = REWARDS.find(r => r.id === id);
+    $('#itemImg').src = 'assets/' + currentReward.img;
+    $('#itemImg').alt = currentReward.name;
+    $('#itemName').textContent = currentReward.name;
+    $('#itemPrice').textContent = currentReward.price;
+    renderBasketBtn();
+    open('item');
+  }
+  function renderBasketBtn() {
+    const added = currentReward && state.basket.includes(currentReward.id);
+    const b = $('#basketToggle');
+    b.classList.toggle('added', added);
+    b.textContent = added ? 'Added to basket' : 'Add to basket';
+  }
+  $('#basketToggle').addEventListener('click', () => {
+    const id = currentReward.id;
+    state.basket = state.basket.includes(id) ? state.basket.filter(x => x !== id) : [...state.basket, id];
+    save(); renderBasketBtn();
+  });
+  $('#basketBtn').addEventListener('click', () => {
+    const n = state.basket.length;
+    toast(n ? `${n} item${n > 1 ? 's' : ''} in your basket` : 'Your basket is empty');
+  });
+
+  function renderLikes() {
+    $$('#reuse .like').forEach((btn, i) => {
+      const on = state.liked.includes(i);
+      $('img', btn).src = on ? 'assets/heart-filled.svg' : 'assets/heart.svg';
+      btn.setAttribute('aria-pressed', on);
+    });
+  }
+
+  // ---------- screens & overlays ----------
+  function go(id) {
+    close();
+    $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+    if (id === 'badges') $('#badges').classList.remove('book');
+    $$('#' + id + ' .scroller').forEach(s => s.scrollTop = 0);
+  }
+
+  let current = null;
+  function open(id) {
+    if (current) close(true);
+    current = $('#' + id);
+    current.classList.add('open');
+    $('#scrim').classList.toggle('clear', id === 'drawer');
+    $('#scrim').classList.add('open');
+  }
+  function close(keepScrim) {
+    if (!current) return;
+    current.classList.remove('open');
+    current = null;
+    if (!keepScrim) $('#scrim').classList.remove('open');
+  }
+  $$('[data-open]').forEach(b => b.addEventListener('click', () => open(b.dataset.open)));
+  $$('[data-screen]').forEach(b => b.addEventListener('click', () => go(b.dataset.screen)));
+  $$('.popup .close, .drawer .close').forEach(b => b.addEventListener('click', () => close()));
+  $('#scrim').addEventListener('click', () => close());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+  // ---------- interactions ----------
+  // One-shot animation classes are dropped once they finish. Otherwise a screen that was
+  // hidden (display:none) replays them when it is shown again, e.g. a phantom "+5".
+  const ONE_SHOT = ['show', 'bump', 'wiggle', 'pop', 'shake', 'scanned', 'placed'];
+  document.addEventListener('animationend', e => e.target.classList.remove(...ONE_SHOT));
+
+  function addPoints(n) {
+    state.points += n; save(); renderPoints();
+    // only animate badges that are on screen; hidden ones would replay later
+    const visible = el => el.checkVisibility();
+    $$('.points').filter(visible).forEach(p => { p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); });
+    $$('.plus5').filter(visible).forEach(f => { f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); });
+  }
+
+  $$('.qr').forEach(qr => qr.addEventListener('click', () => {
+    qr.classList.remove('scanned'); void qr.offsetWidth; qr.classList.add('scanned');
+    const recycling = qr.closest('#recycle');
+    close();
+    setTimeout(() => { addPoints(5); toast(recycling ? 'Recycling scanned! +5 points' : 'Reusable cup scanned! +5 points'); }, 250);
+  }));
+
+  $('#roomBtn').addEventListener('click', () => {
+    const r = $('#roach'); r.classList.remove('wiggle'); void r.offsetWidth; r.classList.add('wiggle');
+  });
+
+  $$('#reuse .like').forEach((btn, i) => btn.addEventListener('click', () => {
+    state.liked = state.liked.includes(i) ? state.liked.filter(x => x !== i) : [...state.liked, i];
+    save(); renderLikes();
+    btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+  }));
+  $$('#reuse .more').forEach(b => b.addEventListener('click', () => toast('Opens the full post')));
+  $('#searchBtn').addEventListener('click', () => toast('Search projects'));
+  $('#addPost').addEventListener('click', () => toast('Share your own project'));
+
+  $('#sashBtn').addEventListener('click', () => $('#badges').classList.add('book'));
+  $('#bookBack').addEventListener('click', () => $('#badges').classList.remove('book'));
+
+  $$('.toggle').forEach(t => t.addEventListener('click', () => t.classList.toggle('on')));
+  $('#reset').addEventListener('click', () => {
+    state = structuredClone(DEFAULT_STATE); save();
+    renderPoints(); renderRoom(); renderStore(); renderLikes(); close();
+    toast('Demo reset');
+  });
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  // ---------- fit the 402x874 phone to the viewport ----------
+  function fit() {
+    const small = innerWidth < 500;
+    document.body.classList.toggle('fullscreen', small);
+    const pad = small ? 0 : 48;
+    const s = Math.min((innerWidth - pad) / 402, (innerHeight - pad) / 874, small ? 10 : 1);
+    $('#stage').style.transform = `scale(${s})`;
+  }
+  addEventListener('resize', fit);
+
+  fit(); renderPoints(); renderRoom(); renderStore(); renderRewards(); renderLikes();
+</script>
+</body>
+</html>
