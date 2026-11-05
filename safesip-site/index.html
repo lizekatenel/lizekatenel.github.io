@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SafeSip</title>
+<meta name="description" content="SafeSip: a spill-proof, spike-resistant party cup. Clickable prototype.">
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;700&display=swap" rel="stylesheet">
+<script>
+  // Scale each Figma frame (desktop 1450px, mobile 360px) to the window width before first paint.
+  function fit() {
+    var w = document.documentElement.clientWidth, s = document.documentElement.style;
+    s.setProperty('--zd', w / 1450);
+    s.setProperty('--zm', w / 360);
+  }
+  fit();
+</script>
+<style>
+  :root {
+    --cream: #f9f0f0;   /* page background, light text */
+    --teal: #08505f;    /* headings, nav, product names */
+    --navy: #00333f;    /* footer, body copy */
+    --pink: #ff88be;    /* button, hover/tap state */
+    --blue: #1f85a4;    /* mobile about facts, chevron */
+    --font: Futura, "Jost", "Century Gothic", sans-serif;
+    --gentle: cubic-bezier(.3, 1.15, .4, 1); /* approximates Figma's "Gentle" spring (~1s) */
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--cream); scroll-behavior: smooth; }
+  body { margin: 0; background: var(--cream); font-family: var(--font); font-weight: 700; color: var(--teal); }
+  p, h1, h2, ol { margin: 0; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; }
+  .abs { position: absolute; }
+  .nowrap { white-space: nowrap; }
+
+  /* Only one tree is shown. Every coordinate below is a Figma coordinate inside that frame. */
+  .desk { position: relative; width: 1450px; height: 4213.2px; zoom: var(--zd, 1); overflow: clip; }
+  .mob  { position: relative; width: 360px; height: 3192px; zoom: var(--zm, 1); display: none; }
+  @media (max-width: 699px) {
+    .desk { display: none; }
+    .mob { display: block; }
+  }
+
+  /* Shared image crop: Figma "crop" fills export as an oversized <img> inside an overflow-hidden box. */
+  .ph { position: absolute; inset: 0; overflow: hidden; }
+  .ph img { position: absolute; max-width: none; width: var(--w); height: var(--h); left: var(--l); top: var(--t); }
+  .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* Shop tile hover/press overlay ("I gave up now its this" Variant2) */
+  .ov { position: absolute; inset: 0; opacity: 0; transition: opacity .2s ease-out;
+        background: linear-gradient(to bottom, rgba(249,240,240,.7), rgba(249,240,240,0));
+        box-shadow: inset 0 4px 4px rgba(0,0,0,.25); pointer-events: none; }
+  .tile { cursor: pointer; }
+  @media (hover: hover) { .tile:hover .ov { opacity: 1; } }
+  .tile:active .ov { opacity: 1; }
+
+  /* ================= DESKTOP ================= */
+  .d-nav { left: 0; top: 0; width: 1450.4px; height: 167.2px; background: var(--cream);
+           box-shadow: 0 4.03px 4.03px rgba(0,0,0,.25); z-index: 3; }
+  .d-logo { left: 108.78px; top: 18.13px; width: 151.29px; height: 130.76px; }
+  .d-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .d-link { top: 64.48px; height: 32px; display: flex; align-items: center; justify-content: center;
+            font-size: 24.17px; color: var(--teal); transition: color .15s ease-out; white-space: nowrap; }
+  .d-link:hover { color: var(--pink); }
+
+  .d-hero { left: 0; top: 167.2px; width: 1450.22px; height: 966.93px; z-index: 1; }
+  .d-hero h1 { left: 98.71px; top: 91.66px; font-size: 96.693px; line-height: 1.079; letter-spacing: -3.8677px;
+               color: var(--cream); font-weight: 700; white-space: nowrap; }
+  .d-buy { left: 98.71px; top: 415.98px; width: 210.51px; height: 80.58px; border-radius: 206.48px;
+           background: var(--pink); border: 3.02px solid var(--pink); color: var(--cream); font-size: 24.17px;
+           display: flex; align-items: center; justify-content: center;
+           box-shadow: inset 0 4px 4px rgba(0,0,0,0); transition: box-shadow 1s var(--gentle); }
+  .d-buy:hover { box-shadow: inset 0 4px 4px rgba(0,0,0,.25); }
+
+  .d-about { left: 131.95px; top: 1307.37px; width: 1186.51px; height: 614.41px; }
+  .d-about h2 { left: 302.17px; top: 93.67px; width: 580.16px; height: 58.42px; text-align: center;
+                font-size: 80.578px; line-height: 1.079; letter-spacing: -3.2231px; color: var(--teal); white-space: nowrap; }
+  .d-about-text { left: 259.86px; top: 211.52px; width: 665.77px; text-align: center; font-weight: 500;
+                  font-size: 18.13px; line-height: 1.4; color: var(--navy); }
+  .d-about-text p + p { margin-top: 1.4em; }
+  .d-cup { left: 0; top: 0; width: 1186.51px; height: 614.41px; cursor: pointer; }
+  .d-part { position: absolute; transition: transform 1s var(--gentle); }
+  .d-part img { position: absolute; left: 50%; top: 50%; max-width: none; transform: translate(-50%, -50%) rotate(90deg); }
+  .d-body { left: 0; top: 0; width: 870.24px; height: 614.41px; }
+  .d-body img { width: 614.41px; height: 870.24px; }
+  .d-lid { left: 712.15px; top: 16.12px; width: 474.36px; height: 582.17px; }
+  .d-lid img { width: 582.17px; height: 474.36px; }
+  /* "cup" Property 1=Open: body slides to left -61.12%, lid to left 80.05% */
+  .d-cup.open .d-body { transform: translateX(-725.2px); }
+  .d-cup.open .d-lid  { transform: translateX(237.6px); }
+  @media (hover: hover) {
+    .d-cup:hover .d-body { transform: translateX(-725.2px); }
+    .d-cup:hover .d-lid  { transform: translateX(237.6px); }
+  }
+
+  .d-shop { left: 98.71px; top: 2095.02px; width: 1253.99px; height: 1259.03px; }
+  .d-h { font-size: 80.578px; line-height: 1.079; letter-spacing: -3.2231px; color: var(--teal); white-space: nowrap; }
+  .d-tile { position: absolute; width: 302.17px; height: 302.17px; }
+  .d-tile .nm, .d-tile .pr { position: absolute; left: 0; line-height: 40.29px; white-space: nowrap; }
+  .d-tile .nm { font-size: 24.17px; top: var(--n); }
+  .d-tile .pr { font-size: 20.144px; top: calc(var(--n) + 40.29px); }
+
+  .d-foot { left: 0; top: 3457.79px; width: 1450.4px; height: 755.42px; background: var(--navy); color: var(--cream); }
+  .d-col h3 { margin: 0; font-size: 24.17px; line-height: normal; white-space: nowrap; }
+  .d-col .it { position: absolute; left: 0; font-size: 20.144px; line-height: 1.4; white-space: nowrap; }
+  .d-col button.it:hover, .d-col a.it:hover { color: var(--pink); }
+  .d-soc { top: 111.8px; width: 91.65px; height: 90.66px; }
+  .d-soc img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ================= MOBILE ================= */
+  .m-nav { left: 0; top: 0; width: 360px; height: 107px; background: var(--cream);
+           box-shadow: 0 4px 8.4px 1px rgba(0,0,0,.17); z-index: 5; }
+  .m-logo { left: 25px; top: 30px; width: 56px; height: 64px; }
+  .m-tab { top: 54px; padding: 14px; font-size: 14px; line-height: normal; white-space: nowrap;
+           color: var(--teal); transition: color 1s var(--gentle); }
+  .m-tab.tap { color: var(--pink); transition: color .25s var(--gentle); }
+
+  /* The hero sticks while the cream "Moving Screen" scrolls over it. */
+  .m-hero { position: sticky; top: 0; height: 706px; z-index: 0; overflow: hidden; }
+  .m-hero .photo { position: absolute; left: 0; top: 97px; width: 360px; height: 609px; }
+  .m-hero .photo img { object-position: 42% 50%; }
+  .m-hero h1 { left: 20px; top: 150px; font-size: 34px; line-height: 1.07; letter-spacing: -1.36px;
+               color: #fff; font-weight: 700; white-space: nowrap; }
+  .m-chev-hero { left: 161px; top: 681px; width: 38px; height: 24px; }
+
+  .m-main { position: relative; z-index: 1; height: 1957px; background: var(--cream);
+            box-shadow: 0 -5px 9.3px rgba(0,0,0,.25); }
+  .m-h { font-size: 28px; line-height: 1.07; letter-spacing: -1.12px; color: var(--teal); white-space: nowrap; }
+  .m-hint { left: 0; width: 360px; top: 130px; text-align: center; font-size: 17px; line-height: 1.07; letter-spacing: -.68px; }
+
+  .m-pop { left: 91px; top: 242px; width: 212px; height: 386px; }
+  .m-pop .part { position: absolute; transition: top 1s var(--gentle); }
+  .m-pop .part img { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity 1s var(--gentle); }
+  .m-pop .part img + img { opacity: 0; }
+  .m-body { left: 0; top: 148.34px; width: 184px; height: 248.5px; }
+  .m-lid  { left: 4px; top: 65.34px; width: 167px; height: 119.3px; }
+  .m-touch { left: 52px; top: 272px; width: 69.26px; height: 69.26px; transition: opacity .4s ease-out; }
+  .m-facts { left: 92px; top: 45px; width: 322px; transform: translateX(-50%); text-align: center;
+             font-weight: 500; font-size: 14px; line-height: 1.94; letter-spacing: -.56px; color: var(--blue);
+             opacity: 0; transition: opacity .6s ease-out; pointer-events: none; }
+  .m-facts ol { padding: 0; list-style-position: inside; }
+  /* "about pop up" Variant2: lid lifts, body drops, facts appear between them */
+  .m-pop.open .m-body { top: 193px; }
+  .m-pop.open .m-lid { top: -80px; }
+  .m-pop.open .part img { opacity: 0; }
+  .m-pop.open .part img + img { opacity: 1; }
+  .m-pop.open .m-touch { opacity: 0; }
+  .m-pop.open .m-facts { opacity: 1; transition-delay: .25s; }
+  .m-chev-about { left: 165px; top: 705px; width: 30px; height: 16px; }
+
+  .m-tile { position: absolute; width: 154px; height: 154px; }
+  .m-tile .nm, .m-tile .pr { position: absolute; left: -1px; line-height: 1.4; white-space: nowrap; }
+  .m-tile .nm { top: 168px; font-size: 16px; letter-spacing: -.64px; }
+  .m-tile .pr { top: 198px; font-size: 14px; letter-spacing: -.56px; }
+
+  .m-foot { position: relative; z-index: 1; height: 529px; background: var(--navy); color: var(--cream); }
+  .m-col h3 { margin: 0; font-size: 15px; line-height: 1.07; letter-spacing: -.6px; white-space: nowrap; }
+  .m-col .it { position: absolute; left: 0; font-weight: 500; font-size: 12px; line-height: 1.4; letter-spacing: -.48px; white-space: nowrap; }
+  .m-soc { top: 184px; width: 37px; height: 36px; }
+  .m-soc img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+</head>
+<body>
+
+<!-- ======================= DESKTOP (Figma "Desktop Version" 4:3, 1450 × 4213) ======================= -->
+<div class="desk">
+  <header class="d-nav abs">
+    <button class="d-logo abs" data-go="top" aria-label="SafeSip home"><img src="assets/logo.webp" alt="SafeSip"></button>
+    <button class="d-link abs" style="left:790.67px;width:91.66px" data-go="about">ABOUT</button>
+    <button class="d-link abs" style="left:994.43px;width:88.64px" data-go="shop">SHOP</button>
+    <button class="d-link abs" style="left:1173.3px;width:164.18px" data-go="contact">CONTACT US</button>
+  </header>
+
+  <section class="d-hero abs" data-anchor="home">
+    <img class="cover" src="assets/hero.webp" alt="A SafeSip cup with a strap being held at a bar">
+    <h1 class="abs">Sip smart,<br>party hard</h1>
+    <button class="d-buy abs" data-go="shop">BUY NOW</button>
+  </section>
+
+  <section class="d-about abs" data-anchor="about">
+    <h2 class="abs">About SafeSip</h2>
+    <div class="d-about-text abs">
+      <p>According to research conducted by our team, 11.1% of students have been spiked themselves and 61.1% of them know someone who has been spiked.</p>
+      <p>There are many factors that can increase your chances of being spiked. The two most common reasons are: leaving a drink unattended to dance or through someone slipping something into a drink without you noticing.</p>
+      <p>SafeSip aims to eliminate these two risk factors through design. The closed top not only makes it harder to breach, but also provides a non-spill lid that eliminates the need to put your drink down when wanting to dance. This is further helped by the strap which allows you to always have your drink on you.</p>
+    </div>
+    <div class="d-cup abs" data-cup aria-label="SafeSip cup (hover to open)">
+      <div class="d-part d-body"><img src="assets/cup-body-side.webp" alt=""></div>
+      <div class="d-part d-lid"><img src="assets/cup-lid-side.webp" alt=""></div>
+    </div>
+  </section>
+
+  <section class="d-shop abs" data-anchor="shop">
+    <h2 class="d-h abs" style="left:0;top:0">Shop</h2>
+
+    <div class="d-tile tile" style="left:1.01px;top:172.24px;--n:315.26px">
+      <div class="ph"><img src="assets/dotty.webp" alt="Dotty cup" style="--w:175%;--h:116.68%;--l:-37.5%;--t:-8.34%"><div class="ov"></div></div>
+      <p class="nm">Dotty</p><p class="pr">R800</p>
+    </div>
+    <div class="d-tile tile" style="left:317.28px;top:172.24px;--n:315.26px">
+      <div class="ph"><img src="assets/martini.webp" alt="Martini cup" style="--w:180%;--h:120.01%;--l:-40%;--t:-10.01%"><div class="ov"></div></div>
+      <p class="nm">Martini</p><p class="pr">R800</p>
+    </div>
+    <div class="d-tile tile" style="left:633.54px;top:172.24px;--n:315.26px">
+      <div class="ph"><img src="assets/floral.webp" alt="Floral cup" style="--w:172%;--h:114.68%;--l:-36%;--t:-7.34%"><div class="ov"></div></div>
+      <p class="nm">Floral</p><p class="pr">R800</p>
+    </div>
+    <div class="d-tile tile" style="left:950.82px;top:172.24px;--n:315.26px">
+      <div class="ph"><img src="assets/stripy.webp" alt="Stripy cup" style="--w:181.5%;--h:121%;--l:-40.67%;--t:-10.33%"><div class="ov"></div></div>
+      <p class="nm" style="left:1px">Stripy</p><p class="pr" style="left:1px">R800</p>
+    </div>
+
+    <h2 class="d-h abs" style="left:0;top:665.77px">SafeSip collaborators</h2>
+
+    <div class="d-tile tile" style="left:0;top:833.98px;--n:332.38px">
+      <div class="ph"><img src="assets/jager.webp" alt="Jägermeister cup" style="--w:174%;--h:116.01%;--l:-46.67%;--t:-3.34%"><div class="ov"></div></div>
+      <p class="nm">Jäegermeister</p><p class="pr">R800</p>
+    </div>
+    <div class="d-tile tile" style="left:317.28px;top:833.98px;--n:332.38px">
+      <div class="ph"><img src="assets/parow.webp" alt="Jack Parow cup" style="--w:175%;--h:116.68%;--l:-37.5%;--t:-3.67%"><div class="ov"></div></div>
+      <p class="nm">Jack Parow</p><p class="pr">R800</p>
+    </div>
+    <div class="d-tile tile" style="left:634.55px;top:833.98px;--n:332.38px">
+      <div class="ph"><img src="assets/aandklas.webp" alt="Aandklas cup" style="--w:175%;--h:116.68%;--l:-37.5%;--t:-3.34%"><div class="ov"></div></div>
+      <p class="nm">Aandklas</p><p class="pr">R800</p>
+    </div>
+  </section>
+
+  <footer class="d-foot abs" data-anchor="contact">
+    <div class="d-col abs" style="left:98.71px;top:62.45px">
+      <h3>SafeSip</h3>
+      <button class="it" style="top:60.43px" data-go="top">Home</button>
+      <button class="it" style="top:113.82px" data-go="about">About</button>
+      <button class="it" style="top:167.2px" data-go="shop">Shop</button>
+    </div>
+    <div class="d-col abs" style="left:305.19px;top:62.45px">
+      <h3>Support</h3>
+      <p class="it" style="top:60.43px">Returns &amp; Exchanges</p>
+      <p class="it" style="top:113.82px">Shipping &amp; Delivery</p>
+      <p class="it" style="top:167.2px">F&amp;Q</p>
+    </div>
+    <div class="d-col abs" style="left:640.59px;top:56.4px">
+      <h3>Contact</h3>
+      <a class="it" style="top:60.43px" href="tel:+27820727096">+27 82 072 7096</a>
+      <a class="it" style="top:113.82px" href="mailto:safesip@sup.co.za">safesip@sup.co.za</a>
+    </div>
+    <div class="d-col abs" style="left:943.77px;top:62.45px"><h3>Follow us on socials:</h3></div>
+    <span class="d-soc abs" style="left:943.77px"><img src="assets/social-facebook.webp" alt="Facebook"></span>
+    <span class="d-soc abs" style="left:1050.53px"><img src="assets/social-instagram.webp" alt="Instagram"></span>
+    <span class="d-soc abs" style="left:1156.29px"><img src="assets/social-tiktok.webp" alt="TikTok"></span>
+    <span class="d-soc abs" style="left:1261.04px"><img src="assets/social-whatsapp.webp" alt="WhatsApp"></span>
+  </footer>
+</div>
+
+<!-- ======================= MOBILE (Figma "Android Large - 1" 1:3, 360 × 3192) ======================= -->
+<div class="mob">
+  <header class="m-nav abs">
+    <button class="m-logo abs" data-go="top" aria-label="SafeSip home">
+      <span class="ph"><img src="assets/logo.webp" alt="SafeSip" style="--w:132.24%;--h:100%;--l:-16.12%;--t:0"></span>
+    </button>
+    <button class="m-tab abs" style="left:98px" data-go="about" data-tab>ABOUT</button>
+    <button class="m-tab abs" style="left:182px" data-go="shop" data-tab>SHOP</button>
+    <button class="m-tab abs" style="left:257px" data-go="contact" data-tab>CONTACT</button>
+  </header>
+
+  <section class="m-hero" data-anchor="home">
+    <div class="photo"><img class="cover" src="assets/hero.webp" alt="A SafeSip cup with a strap being held at a bar"></div>
+    <h1 class="abs">Sip smart.<br>Party hard.</h1>
+    <button class="m-chev-hero abs" data-go="about" aria-label="Scroll to About"><img src="assets/chevron-hero.svg" alt=""></button>
+  </section>
+
+  <section class="m-main">
+    <h2 class="m-h abs" style="left:80px;top:91px" data-anchor="about">About SafeSip</h2>
+    <p class="m-hint abs">(tap the bottle)</p>
+    <div class="m-pop abs" data-pop role="button" tabindex="0" aria-label="Tap the bottle to open it" aria-pressed="false">
+      <span class="part m-body"><img src="assets/cup-body.webp" alt=""><img src="assets/cup-body-open.webp" alt=""></span>
+      <span class="part m-lid"><img src="assets/cup-lid.webp" alt=""><img src="assets/cup-lid-open.webp" alt=""></span>
+      <img class="m-touch abs" src="assets/touch.svg" alt="">
+      <span class="m-facts abs">
+        <p>11.1% of university students have been spiked</p>
+        <p>61.1% know someone who has been spiked</p>
+        <p>The two main causes are :</p>
+        <ol>
+          <li>Putting drinks down and leaving them unattended</li>
+          <li>Un-noticed breach of cup</li>
+        </ol>
+      </span>
+    </div>
+    <button class="m-chev-about abs" data-go="shop" aria-label="Scroll to Shop"><img src="assets/chevron-about.svg" alt=""></button>
+
+    <h2 class="m-h abs" style="left:17px;top:824px" data-anchor="shop">Shop</h2>
+    <div class="m-tile tile" style="left:18px;top:881px">
+      <div class="ph"><img src="assets/dotty.webp" alt="Dotty cup" style="--w:167%;--h:111.35%;--l:-33.5%;--t:-5.67%"><div class="ov"></div></div>
+      <p class="nm">Dotty</p><p class="pr">R800</p>
+    </div>
+    <div class="m-tile tile" style="left:186px;top:881px">
+      <div class="ph"><img src="assets/martini.webp" alt="Martini cup" style="--w:168%;--h:112.01%;--l:-34%;--t:-6.01%"><div class="ov"></div></div>
+      <p class="nm">Martini</p><p class="pr">R800</p>
+    </div>
+    <div class="m-tile tile" style="left:18px;top:1127px">
+      <div class="ph"><img src="assets/floral.webp" alt="Floral cup" style="--w:172%;--h:114.68%;--l:-36%;--t:-7.34%"><div class="ov"></div></div>
+      <p class="nm">Floral</p><p class="pr">R800</p>
+    </div>
+    <div class="m-tile tile" style="left:186px;top:1127px">
+      <div class="ph"><img src="assets/stripy.webp" alt="Stripy cup" style="--w:166%;--h:110.68%;--l:-33%;--t:-5.34%"><div class="ov"></div></div>
+      <p class="nm">Stripy</p><p class="pr">R800</p>
+    </div>
+
+    <h2 class="m-h abs" style="left:17px;top:1373px">SafeSip collaborators</h2>
+    <div class="m-tile tile" style="left:19px;top:1431px">
+      <div class="ph"><img src="assets/jager.webp" alt="Jägermeister cup" style="--w:174%;--h:116.01%;--l:-44.19%;--t:-3.43%"><div class="ov"></div></div>
+      <p class="nm" style="left:-3px">Jäegermeister</p><p class="pr" style="left:-3px">R800</p>
+    </div>
+    <div class="m-tile tile" style="left:186px;top:1431px">
+      <div class="ph"><img src="assets/parow.webp" alt="Jack Parow cup" style="--w:174%;--h:116.01%;--l:-36.35%;--t:-7.35%"><div class="ov"></div></div>
+      <p class="nm" style="left:0">Jack Parow</p><p class="pr" style="left:0">R800</p>
+    </div>
+    <div class="m-tile tile" style="left:19px;top:1677px">
+      <div class="ph"><img src="assets/aandklas.webp" alt="Aandklas cup" style="--w:172%;--h:114.68%;--l:-35.35%;--t:-6.69%"><div class="ov"></div></div>
+      <p class="nm" style="left:-3px">Aandklas</p><p class="pr" style="left:-3px">R800</p>
+    </div>
+  </section>
+
+  <footer class="m-foot" data-anchor="contact">
+    <div class="m-col abs" style="left:22px;top:28px">
+      <h3>SafeSip</h3>
+      <button class="it" style="top:29px" data-go="top">Home</button>
+      <button class="it" style="top:55px" data-go="about">About</button>
+      <button class="it" style="top:81px" data-go="shop">Shop</button>
+    </div>
+    <div class="m-col abs" style="left:104px;top:28px">
+      <h3 style="margin-left:3px">Support</h3>
+      <p class="it" style="top:29px">Returns &amp; Exchanges</p>
+      <p class="it" style="top:55px">Shipping &amp; Delivery</p>
+      <p class="it" style="top:81px">F&amp;Q</p>
+    </div>
+    <div class="m-col abs" style="left:234px;top:28px">
+      <h3>Contact</h3>
+      <a class="it" style="top:29px" href="tel:+27820727096">+27 82 072 7096</a>
+      <a class="it" style="top:55px" href="mailto:safesip@sup.co.za">safesip@sup.co.za</a>
+    </div>
+    <div class="m-col abs" style="left:16px;top:155px"><h3>Follow us on socials:</h3></div>
+    <span class="m-soc abs" style="left:16px"><img src="assets/social-facebook.webp" alt="Facebook"></span>
+    <span class="m-soc abs" style="left:59px"><img src="assets/social-instagram.webp" alt="Instagram"></span>
+    <span class="m-soc abs" style="left:101px"><img src="assets/social-tiktok.webp" alt="TikTok"></span>
+    <span class="m-soc abs" style="left:143px"><img src="assets/social-whatsapp.webp" alt="WhatsApp"></span>
+  </footer>
+</div>
+
+<script>
+  addEventListener('resize', fit);
+
+  // The visible tree (desktop or mobile); scroll targets are looked up inside it.
+  function tree() { return document.querySelector(matchMedia('(max-width: 699px)').matches ? '.mob' : '.desk'); }
+
+  // data-go="x" smooth-scrolls to [data-anchor="x"] (Figma "Scroll to"); "top" scrolls to the page top.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-go]');
+    if (!b) return;
+    var id = b.dataset.go;
+    if (id === 'top') { scrollTo({ top: 0, behavior: 'smooth' }); }
+    else {
+      var t = tree().querySelector('[data-anchor="' + id + '"]');
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // Mobile nav tab "tap state": pink, then eases back after a moment.
+    if (b.hasAttribute('data-tab')) {
+      b.classList.add('tap');
+      clearTimeout(b._t);
+      b._t = setTimeout(function () { b.classList.remove('tap'); }, 800);
+    }
+  });
+
+  // Desktop cup opens on hover (CSS). On touch screens with no hover, a tap toggles it.
+  var cup = document.querySelector('[data-cup]');
+  cup.addEventListener('click', function () {
+    if (!matchMedia('(hover: hover)').matches) cup.classList.toggle('open');
+  });
+
+  // Mobile "about pop up": tap the bottle to open/close.
+  var pop = document.querySelector('[data-pop]');
+  pop.addEventListener('click', function () {
+    var open = pop.classList.toggle('open');
+    pop.setAttribute('aria-pressed', open);
+  });
+</script>
+</body>
+</html>
