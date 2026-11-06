@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Warning Flicker</title>
+<meta name="description" content="Our new study may warn us of future climate tipping points. Clickable prototype.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Inter:wght@700&display=swap" rel="stylesheet">
+<script>
+  // Scale the 1440px Figma frame to the window width before first paint.
+  function fit() { document.documentElement.style.setProperty('--z', document.documentElement.clientWidth / 1440); }
+  fit();
+</script>
+<style>
+  :root {
+    --orange: #ec754b;  /* title, subtitle */
+    --brown: #5b5121;   /* body copy, authors */
+    --teal: #6fbba5;    /* links, section headings */
+    --gentle: cubic-bezier(.3, 1.15, .4, 1); /* approximates Figma's "Gentle" spring */
+  }
+  * { box-sizing: border-box; }
+  html { background: #fff; }
+  body { margin: 0; background: #fff; font-family: Figtree, sans-serif; color: var(--brown); overflow-x: hidden; }
+  p { margin: 0; }
+  img { display: block; }
+  a { color: inherit; }
+
+  /* Every px value is a Figma coordinate inside "Desktop - 1" (1:2), 1440 × 5014. */
+  .page { position: relative; width: 1440px; height: 5014px; zoom: var(--z, 1); overflow: clip; background: #fff; }
+  .abs { position: absolute; }
+
+  /* Figma "crop" fill: oversized image inside an overflow-hidden box. */
+  .ph { position: absolute; inset: 0; overflow: hidden; }
+  .ph img { position: absolute; max-width: none; width: var(--iw); height: var(--ih); left: var(--il, 0%); top: var(--it, 0%); }
+  .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* A rotated layer, described by its centre, unrotated size and rotation (all from Figma). Changing the
+     variables per state animates it, like Smart Animate. */
+  .pc { position: absolute; left: calc(var(--cx) * 1px - var(--w) * .5px); top: calc(var(--cy) * 1px - var(--h) * .5px);
+        width: calc(var(--w) * 1px); height: calc(var(--h) * 1px); transform: rotate(var(--r, 0deg)); }
+
+  /* Art frames: pointer-events only on their hit area, so the article text and links stay usable. */
+  .fx { position: absolute; overflow: clip; pointer-events: none; }
+  .fx .hit { position: absolute; pointer-events: auto; }
+
+  /* ---------- Header ---------- */
+  .title { left: 20px; top: 0; width: 1420px; height: 558px; z-index: 4; pointer-events: none; }
+  .sub { left: 80px; font-weight: 700; font-size: 55.88px; line-height: normal; color: var(--orange); white-space: nowrap; z-index: 3; }
+  .authors { left: 78px; top: 568px; width: 299px; z-index: 3; font-family: Inter, sans-serif; font-weight: 700; font-size: 22px; line-height: 33px; }
+  .authors a { display: block; color: var(--brown); text-decoration: underline; text-underline-position: from-font; }
+  .authors a:hover { color: var(--orange); }
+
+  /* ---------- Article text (frame 2:5) ---------- */
+  .text { left: 188px; top: 753px; width: 542px; height: 3776px; overflow: clip; z-index: 3; pointer-events: none; }
+  .text .in { position: absolute; left: 5px; top: 106px; width: 522px; font-size: 18px; line-height: 28.8px; }
+  .text p:not(.gap) { pointer-events: auto; }
+  .text .gap { height: 28.8px; }
+  .text h2 { margin: 0; font-weight: 600; font-size: 28px; line-height: 36.4px; color: var(--teal); }
+  .text a, .text .t { font-weight: 600; color: var(--teal); }
+  .text a { text-decoration: underline; text-underline-position: from-font; }
+  .text a:hover { color: var(--orange); }
+
+  /* ---------- Frame 4: map flicker (105:186). Hover steps Default → V2 → V3 → V4, 0.3s ease-in each ---------- */
+  .f4 { left: -5px; top: 20px; width: 1440px; height: 833px; z-index: 2; }
+  .f4 .hit { left: 605px; top: 0; width: 840px; height: 833px; }
+  .f4 .pc { transition: opacity .3s ease-in; }
+  .f4[data-state="2"] .top { opacity: .42; }
+  .f4[data-state="3"] .top { opacity: .81; }
+  .f4[data-state="3"] .bits { opacity: .40; }
+  .f4[data-state="4"] .bot { opacity: .28; }
+  .f4[data-state="4"] .bits { opacity: .58; }
+
+  /* ---------- Frame 2: dunes (70:1757). Hover blows sand in, 1.4s gentle ---------- */
+  .f2 { left: 0; top: 1168px; width: 1440px; height: 458px; z-index: 1; }
+  .f2 .hit { inset: 0; }
+  .f2 .sand { opacity: 0; transition: opacity 1.4s var(--gentle); }
+  .f2[data-state="2"] .sand { opacity: 1; }
+
+  /* ---------- Frame 3: land pieces drift apart (95:160). Hover, 1.4s gentle ---------- */
+  .f3 { left: 51px; top: 1648px; width: 1440px; height: 1067px; z-index: 1; }
+  .f3 .hit { left: 700px; top: 0; width: 689px; height: 800px; }
+  .f3 .pc { transition: left 1.4s var(--gentle), top 1.4s var(--gentle), width 1.4s var(--gentle), height 1.4s var(--gentle), transform 1.4s var(--gentle), opacity 1.4s var(--gentle); }
+  .f3 .a { --cx: 980.5; --cy: 381.5; --w: 401; --h: 361; --r: 0deg; }
+  .f3 .b { --cx: 1159.66; --cy: 582.62; --w: 297.617; --h: 386.693; --r: 6.04deg; }
+  .f3 .frag { --cx: 1096.12; --cy: 391.16; --w: 1342.551; --h: 388.736; --r: -27.93deg; opacity: 0; }
+  .f3[data-state="2"] .a { --cx: 880.5; --cy: 280.5; --w: 363; --h: 327; --r: 13.85deg; }
+  .f3[data-state="2"] .b { --cx: 1173.42; --cy: 632.11; --w: 269.759; --h: 350.498; --r: -0.64deg; }
+  .f3[data-state="2"] .frag { opacity: 1; }
+
+  /* ---------- Frame 5: pieces build up (107:609). Hover adds a piece every 0.8s ---------- */
+  .f5 { left: 797px; top: 2471px; width: 563px; height: 909px; z-index: 1; }
+  .f5 .hit { inset: 0; }
+  .f5 .p2, .f5 .p3, .f5 .p4 { opacity: 0; transition: opacity .02s ease-out; }
+  .f5[data-state="2"] .p2,
+  .f5[data-state="3"] .p2, .f5[data-state="3"] .p3,
+  .f5[data-state="4"] .p2, .f5[data-state="4"] .p3, .f5[data-state="4"] .p4 { opacity: 1; }
+
+  /* ---------- Scattered fragments at the foot of the page ("test part 2 3", rotated 36.42°) ---------- */
+  .tail { left: -982px; top: 3996.41px; width: 2655.06px; height: 2533.8px; transform-origin: 0 0; transform: rotate(-36.4226deg); z-index: 1; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <img class="title abs" src="assets/title.svg" alt="The Warning Flicker">
+  <p class="sub abs" style="top:209.65px">Our new study may</p>
+  <p class="sub abs" style="top:278.43px">warn us of future</p>
+  <p class="sub abs" style="top:347.22px">climate tipping</p>
+  <p class="sub abs" style="top:416.01px">points.</p>
+  <div class="authors abs">
+    <a href="https://theconversation.com/profiles/martin-h-trauth-1531606" target="_blank" rel="noopener">Martin H. Trauth</a>
+    <a href="https://theconversation.com/profiles/asfawossen-asrat-380664" target="_blank" rel="noopener">Asfawossen Asrat</a>
+    <a href="https://theconversation.com/profiles/mark-maslin-108286" target="_blank" rel="noopener">Mark Maslin</a>
+  </div>
+
+  <!-- Frame 4: the map, flickers on hover -->
+  <div class="fx f4" data-fx data-steps="2,3,4" data-delays="825,615" data-state="1">
+    <div class="pc bits" style="--cx:856.1365;--cy:580.7765;--w:942.199;--h:588.875;--r:58.28deg"><img class="cover" src="assets/map-pieces.webp" alt=""></div>
+    <div class="pc bot" style="--cx:1213.957;--cy:680.5215;--w:405.851;--h:499.694;--r:58.28deg"><div class="ph"><img src="assets/map-bottom.webp" alt="" style="--iw:284.58%;--ih:144.46%;--il:-67.79%;--it:-44.46%"></div></div>
+    <div class="pc top" style="--cx:1258.195;--cy:362.1075;--w:492.475;--h:514.933;--r:54.89deg"><div class="ph"><img src="assets/map-top.webp" alt="" style="--iw:234.53%;--ih:140.19%"></div></div>
+    <div class="hit"></div>
+  </div>
+
+  <!-- Article -->
+  <div class="text abs">
+    <div class="in">
+      <p>Around five and a half millenia ago, northern Africa went through a dramatic transformation. The Sahara desert expanded and grasslands, forests and lakes favoured by humans disappeared. Humans were forced to retreat to the mountains, the oases, and the Nile valley and delta. As a relatively large and dispersed population was squeezed into smaller and more fertile areas, it needed to innovate new ways to produce food and organise society. Soon after, one of the world’s first great civilisations emerged – <a href="https://www.science.org/doi/abs/10.1126/science.1130989" target="_blank" rel="noopener">ancient Egypt</a><span class="t">.</span> This transition from the most recent “African humid period”, which lasted from 15,000 to 5,500 years ago, to the current dry conditions in northern Africa is the clearest example of a climate tipping point in recent geological history. Climate tipping points are thresholds that, once crossed, result in dramatic climate change to a new stable climate.</p>
+      <p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p>
+      <p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p><p class="gap"></p>
+      <p>Our new study published in <a href="https://www.nature.com/articles/s41467-024-47921-1" target="_blank" rel="noopener">Nature Communications</a> reveals that before northern Africa dried out, its climate “flickered” between two stable climatic states before tipping permanently. This is the first time it’s been shown such flickering happened in Earth’s past. And it suggests that places with highly variable cycles of changing climate today may in some cases by headed for tipping points of their own.</p>
+      <p class="gap"></p>
+      <p>Whether we will have any warnings of climate tipping points is one of the biggest concerns of climate scientists today. As we pass global warming of 1.5˚C, <a href="https://www.science.org/doi/10.1126/science.abn7950" target="_blank" rel="noopener">the most likely tipping points</a> involve the collapse of ice sheets in Greenland or Antarctica, tropical coral reefs dying off, or abrupt thawing of Arctic permafrost.</p>
+      <p>Some say that there will be <a href="https://www.nature.com/articles/nature08227" target="_blank" rel="noopener">warning signs of these major climate shifts</a><span class="t">.</span> However, these depend very much on the actual type of tipping point, and the interpretation of these signals is therefore difficult. One of the big questions is whether tipping points will be characterised by flickering or whether the climate will initially appear to become more stable before tipping over in one go.</p>
+      <p class="gap"></p>
+      <h2>620,000 years of environmental history</h2>
+      <p class="gap"></p>
+      <p>To investigate further, we gathered an international team of scientists and went to the basin of Chew Bahir in southern Ethiopia. There was an extensive lake here during the last African humid period, and deposits of sediment, several kilometres deep, underneath the lake bed record the history of climate-driven lake level fluctuations very precisely.</p>
+      <p class="gap"></p>
+      <p>Today, the lake has largely disappeared and the deposits can be drilled relatively cheaply without the need for a <a href="https://www.icdp-online.org/" target="_blank" rel="noopener">drill rig on a floating platform or on a drillship</a><span class="t">.</span> We drilled 280 metres below the dry lake bed – almost as deep as the Eiffel Tower is tall – and extracted hundreds of tubes of mud around 10 centimetres in diameter.</p>
+      <p class="gap"></p>
+      <p>By putting these tubes together in order they form a so-called sediment core. That core contains vital chemical and biological information which records the past <a href="https://www.nature.com/articles/s41561-022-01032-y" target="_blank" rel="noopener">620,000 years of eastern African climate and environmental history</a><span class="t">.</span></p>
+      <p>We now know that at the end of the African humid period there was around 1,000 years in which the climate alternated regularly between being intensely dry and wet.</p>
+      <p class="gap"></p>
+      <p>In total, we observed at least <a href="https://www.nature.com/articles/s41467-024-47921-1" target="_blank" rel="noopener">14 dry phases</a><span class="t">,</span> each of which lasted between 20 and 80 years and recurred at intervals of about 160 years. Later there were seven wet phases, of a similar duration and frequency. Finally, around 5,500 years ago a dry climate prevailed for good.</p>
+      <p class="gap"></p>
+      <h2>Climate flickering</h2>
+      <p class="gap"></p>
+      <p>These high-frequency, extreme wet-dry fluctuations represent a pronounced climate flickering. Such flickering <a href="https://www.pnas.org/doi/full/10.1073/pnas.2108783118" target="_blank" rel="noopener">can be simulated in climate model computer programs</a> and also happened in earlier climate transitions at Chew Bahir.</p>
+      <p class="gap"></p>
+      <p>We see the same types of flickering during a previous change from <a href="https://www.nature.com/articles/s41467-024-47921-1" target="_blank" rel="noopener">humid to dry climate around 379,000 years ago</a> in the same sediment core. </p>
+      <p>It looks like a perfect copy of the transition at the end of the African humid period.</p>
+      <p class="gap"></p>
+      <p>This is important because this transition was natural, as it occurred long before humans had any influence on the environment. Knowing such a change can occur naturally counters the argument made by some academics that the <a href="https://www.frontiersin.org/journals/earth-science/articles/10.3389/feart.2017.00004/full" target="_blank" rel="noopener">introduction of livestock and new agricultural techniques</a> may have accelerated the end of the last African humid period.</p>
+      <p class="gap"></p>
+      <p>Conversely, humans in the region were undoubtedly affected by the climate tipping. The flickering would have had a dramatic impact, easily noticed by a single human, compared to the slow climate transition spanning tens of generations.</p>
+      <p class="gap"></p>
+      <p>It could perhaps explain why the archaeological findings in the region are so different, even contradictory, at times of the transition. People retreated during the dry phases and then some came back during the wet phases. Ultimately, humans retreated to the places that were consistently wet like the Nile valley.</p>
+      <p class="gap"></p>
+      <p>Confirmation of climate flickering as precursors to a major climate tipping is important because it may also provide insights into possible early warning signals for large climate changes in future.</p>
+      <p>It seems that highly variable climate conditions such as rapid wet–dry cycles may warn of a significant shift in the climate system. Identifying these precursors now may provide the warning we need that future warming will take us across one of more of the sixteen identified critical climate tipping points.</p>
+      <p class="gap"></p>
+      <p>This is particularly important for regions such as eastern Africa whose nearly 500 million people are already highly vulnerable to climate change induced impacts such as drought.</p>
+    </div>
+  </div>
+
+  <!-- Frame 2: dunes, sand blows in on hover -->
+  <div class="fx f2" data-fx data-steps="2" data-state="1">
+    <div class="abs" style="left:-76px;top:-314px;width:1709px;height:1068px"><img class="cover" src="assets/dunes.webp" alt="Sand dunes drawn in text, with two camels"></div>
+    <div class="abs sand" style="left:-43px;top:-104px;width:1689px;height:1056px"><img class="cover" src="assets/sand.webp" alt=""></div>
+    <div class="hit"></div>
+  </div>
+
+  <!-- Frame 3: two land pieces drift apart on hover -->
+  <div class="fx f3" data-fx data-steps="2" data-state="1">
+    <div class="pc frag"><div class="ph"><img src="assets/sand.webp" alt="" style="--iw:147.97%;--ih:319.39%;--il:-47.97%;--it:-37.14%"></div></div>
+    <div class="pc a"><div class="ph"><img src="assets/map-top.webp" alt="" style="--iw:235.68%;--ih:163.93%;--it:-10.02%"></div></div>
+    <div class="pc b"><div class="ph"><img src="assets/map-bottom.webp" alt="" style="--iw:295.98%;--ih:142.37%;--il:-72.19%;--it:-46.03%"></div></div>
+    <div class="hit"></div>
+  </div>
+
+  <!-- Frame 5: pieces build up on hover -->
+  <div class="fx f5" data-fx data-steps="2,3,4" data-delays="800,800" data-state="1">
+    <div class="abs" style="left:85px;top:583px;width:361px;height:268px"><div class="ph"><img src="assets/flick-1.webp" alt="" style="--iw:421.97%;--ih:355.06%;--il:-156.65%;--it:-243.68%"></div></div>
+    <div class="abs p3" style="left:138px;top:306px;width:219px;height:181px"><div class="ph"><img src="assets/flick-3.webp" alt="" style="--iw:527.34%;--ih:398.37%;--il:-199.28%;--it:-132.23%"></div></div>
+    <div class="abs p4" style="left:115px;top:87px;width:262px;height:284px"><div class="ph"><img src="assets/flick-4.webp" alt="" style="--iw:475.96%;--ih:275%;--il:-174.04%;--it:-14.72%"></div></div>
+    <div class="pc p2" style="--cx:269.2185;--cy:560.5785;--w:257.745;--h:221.487;--r:4.53deg"><div class="ph"><img src="assets/flick-2.webp" alt="" style="--iw:540.67%;--ih:393.24%;--il:-216.82%;--it:-207.47%"></div></div>
+    <div class="hit"></div>
+  </div>
+
+  <!-- Scattered fragments at the foot of the page -->
+  <div class="tail abs"><div class="ph"><img src="assets/sand.webp" alt="" style="--iw:328.205%;--ih:214.946%;--il:-102.885%"></div></div>
+</div>
+
+<script>
+  addEventListener('resize', fit);
+
+  // Each [data-fx] frame mirrors a Figma component set. Hover (mouse) runs data-steps in order, waiting
+  // data-delays ms between steps (Figma "After delay" + its 0.3s transition); leaving resets to state 1.
+  // On touch screens, a tap starts the sequence and a second tap resets it.
+  var canHover = matchMedia('(hover: hover)').matches;
+  document.querySelectorAll('[data-fx]').forEach(function (fx) {
+    var steps = fx.dataset.steps.split(','), delays = (fx.dataset.delays || '').split(',').map(Number), timers = [];
+    function start() {
+      stop(true);
+      fx.dataset.state = steps[0];
+      var t = 0;
+      for (var i = 1; i < steps.length; i++) {
+        t += delays[i - 1];
+        timers.push(setTimeout(function (s) { fx.dataset.state = s; }, t, steps[i]));
+      }
+    }
+    function stop(keep) {
+      timers.forEach(clearTimeout); timers = [];
+      if (!keep) fx.dataset.state = '1';
+    }
+    var hit = fx.querySelector('.hit');
+    hit.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') start(); });
+    hit.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') stop(); });
+    hit.addEventListener('click', function () { if (!canHover) (fx.dataset.state === '1' ? start() : stop()); });
+  });
+</script>
+</body>
+</html>
